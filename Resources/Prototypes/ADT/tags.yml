@@ -101,9 +101,6 @@
   id: Stomach
 
 - type: Tag
-  id: Stunbaton
-
-- type: Tag
   id: Table
 
 - type: Tag
@@ -123,9 +120,6 @@
 
 - type: Tag
   id: VehicleKey
-
-- type: Tag
-  id: JanicartKeys
 
 #mech_gygax
 
@@ -334,7 +328,7 @@
 
 - type: Tag
   id: ADTBeerCan
-  
+
   # New Year
 
 - type: Tag
@@ -415,7 +409,7 @@
 
 - type: Tag
   id: ADTWeaponMeleePrasatChainsword
-  
+
 #sponsor_items - End
 
 - type: Tag

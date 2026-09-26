@@ -2,4 +2,4 @@
 
 namespace Content.Server._RMC14.Weapons.Melee;
 
-public sealed class RMCMeleeWeaponSystem : SharedRMCMeleeWeaponSystem;
+public sealed partial class RMCMeleeWeaponSystem : SharedRMCMeleeWeaponSystem;

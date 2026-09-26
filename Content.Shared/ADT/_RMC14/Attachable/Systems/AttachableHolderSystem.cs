@@ -14,6 +14,8 @@ using Content.Shared.Hands;
 using Content.Shared.Hands.Components;
 using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Interaction;
+using Content.Shared.Interaction.Events;
+using Content.Shared.Storage.EntitySystems;
 using Content.Shared.Verbs;
 using Content.Shared.Weapons.Melee.Events;
 using Content.Shared.Weapons.Ranged.Components;
@@ -25,20 +27,22 @@ using Robust.Shared.Audio.Systems;
 using Robust.Shared.Containers;
 using Robust.Shared.Input.Binding;
 using Robust.Shared.Map;
+using Robust.Shared.Random;
 
 namespace Content.Shared._RMC14.Attachable.Systems;
 
-public sealed class AttachableHolderSystem : EntitySystem
+public sealed partial class AttachableHolderSystem : EntitySystem
 {
-    [Dependency] private readonly ActionBlockerSystem _actionBlocker = default!;
-    [Dependency] private readonly EntityWhitelistSystem _whitelist = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!;
-    [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
-    [Dependency] private readonly SharedGunSystem _gun = default!;
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly SharedUserInterfaceSystem _ui = default!;
-    [Dependency] private readonly SharedVerbSystem _verbSystem = default!;
+    [Dependency] private ActionBlockerSystem _actionBlocker = default!;
+    [Dependency] private EntityWhitelistSystem _whitelist = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
+    [Dependency] private SharedDoAfterSystem _doAfter = default!;
+    [Dependency] private SharedGunSystem _gun = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private SharedUserInterfaceSystem _ui = default!;
+    [Dependency] private SharedVerbSystem _verbSystem = default!;
 
     public override void Initialize()
     {
@@ -46,7 +50,6 @@ public sealed class AttachableHolderSystem : EntitySystem
         SubscribeLocalEvent<AttachableHolderComponent, AttachableDetachDoAfterEvent>(OnDetachDoAfter);
         SubscribeLocalEvent<AttachableHolderComponent, AttachableHolderAttachToSlotMessage>(OnAttachableHolderAttachToSlotMessage);
         SubscribeLocalEvent<AttachableHolderComponent, AttachableHolderDetachMessage>(OnAttachableHolderDetachMessage);
-        SubscribeLocalEvent<AttachableHolderComponent, AttemptShootEvent>(OnAttachableHolderAttemptShoot);
         SubscribeLocalEvent<AttachableHolderComponent, GunShotEvent>(RelayEvent);
         SubscribeLocalEvent<AttachableHolderComponent, BoundUIOpenedEvent>(OnAttachableHolderUiOpened);
         SubscribeLocalEvent<AttachableHolderComponent, EntInsertedIntoContainerMessage>(OnAttached);
@@ -56,9 +59,13 @@ public sealed class AttachableHolderSystem : EntitySystem
         SubscribeLocalEvent<AttachableHolderComponent, GotEquippedHandEvent>(RelayEvent);
         SubscribeLocalEvent<AttachableHolderComponent, GotUnequippedHandEvent>(RelayEvent);
         SubscribeLocalEvent<AttachableHolderComponent, GunRefreshModifiersEvent>(RelayEvent,
-            after: new[] { typeof(WieldableSystem) });
+            after: new[] { typeof(SharedWieldableSystem) });
+        SubscribeLocalEvent<AttachableHolderComponent, BeforeRangedInteractEvent>(OnAttachableHolderBeforeRangedInteract,
+            before: [typeof(SharedStorageSystem)]);
         SubscribeLocalEvent<AttachableHolderComponent, InteractUsingEvent>(OnAttachableHolderInteractUsing);
-        SubscribeLocalEvent<AttachableHolderComponent, ActivateInWorldEvent>(OnAttachableHolderInteractInWorld);
+        SubscribeLocalEvent<AttachableHolderComponent, AfterInteractEvent>(OnAttachableHolderAfterInteract);
+        SubscribeLocalEvent<AttachableHolderComponent, ActivateInWorldEvent>(OnAttachableHolderInteractInWorld,
+            before: new[] { typeof(CMGunSystem) });
         SubscribeLocalEvent<AttachableHolderComponent, ItemWieldedEvent>(OnHolderWielded);
         SubscribeLocalEvent<AttachableHolderComponent, ItemUnwieldedEvent>(OnHolderUnwielded);
         SubscribeLocalEvent<AttachableHolderComponent, UniqueActionEvent>(OnAttachableHolderUniqueAction);
@@ -75,6 +82,8 @@ public sealed class AttachableHolderSystem : EntitySystem
         SubscribeLocalEvent<AttachableHolderComponent, GetFireModeValuesEvent>(RelayEvent);
         SubscribeLocalEvent<AttachableHolderComponent, GetFireModesEvent>(RelayEvent);
         SubscribeLocalEvent<AttachableHolderComponent, GetDamageFalloffEvent>(RelayEvent);
+        SubscribeLocalEvent<AttachableHolderComponent, GunGetAmmoSpreadEvent>(RelayEvent);
+        SubscribeLocalEvent<AttachableHolderComponent, DroppedEvent>(RelayEvent);
 
 
         CommandBinds.Builder
@@ -142,6 +151,25 @@ public sealed class AttachableHolderSystem : EntitySystem
         Dirty(holder);
     }
 
+    private void OnAttachableHolderBeforeRangedInteract(Entity<AttachableHolderComponent> holder, ref BeforeRangedInteractEvent args)
+    {
+        if (args.Handled)
+            return;
+
+        if (holder.Comp.SupercedingAttachable is not { } attachable)
+            return;
+
+        var afterInteractEvent = new BeforeRangedInteractEvent(args.User,
+            attachable,
+            args.Target,
+            args.ClickLocation,
+            args.CanReach);
+        RaiseLocalEvent(attachable, afterInteractEvent);
+
+        if (afterInteractEvent.Handled)
+            args.Handled = true;
+    }
+
     private void OnAttachableHolderInteractUsing(Entity<AttachableHolderComponent> holder, ref InteractUsingEvent args)
     {
         if (CanAttach(holder, args.Used))
@@ -176,6 +204,25 @@ public sealed class AttachableHolderSystem : EntitySystem
             args.Handled = true;
     }
 
+    private void OnAttachableHolderAfterInteract(Entity<AttachableHolderComponent> holder, ref AfterInteractEvent args)
+    {
+        if (args.Handled)
+            return;
+
+        if (holder.Comp.SupercedingAttachable is not { } attachable)
+            return;
+
+        var afterInteractEvent = new AfterInteractEvent(args.User,
+            attachable,
+            args.Target,
+            args.ClickLocation,
+            args.CanReach);
+        RaiseLocalEvent(attachable, afterInteractEvent);
+
+        if (afterInteractEvent.Handled)
+            args.Handled = true;
+    }
+
     private void OnAttachableHolderInteractInWorld(Entity<AttachableHolderComponent> holder, ref ActivateInWorldEvent args)
     {
         if (args.Handled || holder.Comp.SupercedingAttachable == null)
@@ -185,30 +232,6 @@ public sealed class AttachableHolderSystem : EntitySystem
         RaiseLocalEvent(holder.Comp.SupercedingAttachable.Value, activateInWorldEvent);
 
         args.Handled = activateInWorldEvent.Handled;
-    }
-
-    private void OnAttachableHolderAttemptShoot(Entity<AttachableHolderComponent> holder, ref AttemptShootEvent args)
-    {
-        if (args.Cancelled)
-            return;
-
-        if (holder.Comp.SupercedingAttachable == null)
-            return;
-
-        args.Cancelled = true;
-
-        if (!TryComp<GunComponent>(holder.Owner, out var holderGunComponent) ||
-            holderGunComponent.ShootCoordinates == null ||
-            !TryComp<GunComponent>(holder.Comp.SupercedingAttachable,
-                out var attachableGunComponent))
-        {
-            return;
-        }
-
-        _gun.AttemptShoot(args.User,
-            holder.Comp.SupercedingAttachable.Value,
-            attachableGunComponent,
-            holderGunComponent.ShootCoordinates.Value);
     }
 
     private void OnAttachableHolderUniqueAction(Entity<AttachableHolderComponent> holder, ref UniqueActionEvent args)
@@ -239,7 +262,6 @@ public sealed class AttachableHolderSystem : EntitySystem
 
     private void OnAttachableHolderGetVerbs(Entity<AttachableHolderComponent> holder, ref GetVerbsEvent<EquipmentVerb> args)
     {
-
         EnsureSlots(holder);
         var userUid = args.User;
 
@@ -304,7 +326,6 @@ public sealed class AttachableHolderSystem : EntitySystem
         EntityUid userUid,
         string slotId = "")
     {
-
         var validSlots = GetValidSlots(holder, attachableUid);
 
         if (validSlots.Count == 0)
@@ -382,7 +403,6 @@ public sealed class AttachableHolderSystem : EntitySystem
 
         Dirty(holder);
 
-        _gun.RefreshModifiers(holder.Owner);
         _audio.PlayPredicted(Comp<AttachableComponent>(attachableUid).AttachSound,
             holder,
             userUid);
@@ -413,7 +433,6 @@ public sealed class AttachableHolderSystem : EntitySystem
 
     public void StartDetach(Entity<AttachableHolderComponent> holder, EntityUid attachableUid, EntityUid userUid)
     {
-
         var delay = Comp<AttachableComponent>(attachableUid).AttachDoAfter;
         var args = new DoAfterArgs(
             EntityManager,
@@ -481,7 +500,6 @@ public sealed class AttachableHolderSystem : EntitySystem
             userUid);
 
         Dirty(holder);
-        _gun.RefreshModifiers(holder.Owner);
         _hands.TryPickupAnyHand(userUid, attachable);
         return true;
     }
@@ -587,19 +605,16 @@ public sealed class AttachableHolderSystem : EntitySystem
 
     private void ToggleAttachable(EntityUid userUid, string slotId)
     {
-        if (!TryComp<HandsComponent>(userUid, out var handsComponent) ||
-            !TryComp<AttachableHolderComponent>(handsComponent.ActiveHandEntity, out var holderComponent))
+        if (_hands.GetActiveItem(userUid) is not { } active ||
+            !TryComp<AttachableHolderComponent>(active, out var holderComponent))
         {
             return;
         }
 
-        var active = handsComponent.ActiveHandEntity;
         if (!holderComponent.Running || !_actionBlocker.CanInteract(userUid, active))
             return;
 
-        if (!_container.TryGetContainer(active.Value,
-                slotId,
-                out var container) || container.Count <= 0)
+        if (!_container.TryGetContainer(active, slotId, out var container) || container.Count <= 0)
             return;
 
         var attachableUid = container.ContainedEntities[0];
@@ -607,32 +622,27 @@ public sealed class AttachableHolderSystem : EntitySystem
         if (!HasComp<AttachableToggleableComponent>(attachableUid))
             return;
 
-        if (!TryComp<AttachableToggleableComponent>(attachableUid, out var toggleableComponent))
-            return;
-
-        var ev = new AttachableToggleStartedEvent(active.Value, userUid, slotId);
+        var ev = new AttachableToggleStartedEvent(active, userUid, slotId);
         RaiseLocalEvent(attachableUid, ref ev);
     }
 
     private void FieldStripHeldItem(EntityUid userUid)
     {
-        if (!TryComp<HandsComponent>(userUid, out var handsComponent) ||
-            !TryComp<AttachableHolderComponent>(handsComponent.ActiveHandEntity, out var holderComponent))
+        if (_hands.GetActiveItem(userUid) is not { } active ||
+            !TryComp<AttachableHolderComponent>(active, out var holderComponent))
         {
             return;
         }
 
-        EntityUid holderUid = handsComponent.ActiveHandEntity.Value;
-
-        if (!holderComponent.Running || !_actionBlocker.CanInteract(userUid, holderUid))
+        if (!holderComponent.Running || !_actionBlocker.CanInteract(userUid, active))
             return;
 
-        foreach (var verb in _verbSystem.GetLocalVerbs(holderUid, userUid, typeof(Verb)))
+        foreach (var verb in _verbSystem.GetLocalVerbs(active, userUid, typeof(Verb)))
         {
             if (!verb.Text.Equals(Loc.GetString("rmc-verb-strip-attachables")))
                 continue;
 
-            _verbSystem.ExecuteVerb(verb, userUid, holderUid);
+            _verbSystem.ExecuteVerb(verb, userUid, active);
             break;
         }
     }
@@ -641,6 +651,25 @@ public sealed class AttachableHolderSystem : EntitySystem
     {
         holder.Comp.SupercedingAttachable = supercedingAttachable;
         Dirty(holder);
+    }
+
+    public bool TryGetInhandSupercedingGun(EntityUid user, out EntityUid attachable, [NotNullWhen(true)] out GunComponent? gunComp)
+    {
+        attachable = default;
+
+        if (_hands.GetActiveItem(user) is not { } active ||
+            !TryComp(active, out AttachableHolderComponent? holderComp) ||
+            holderComp.SupercedingAttachable == null)
+        {
+            gunComp = null;
+            return false;
+        }
+
+        if (!TryComp(holderComp.SupercedingAttachable, out gunComp))
+            return false;
+
+        attachable = holderComp.SupercedingAttachable.Value;
+        return true;
     }
 
     public bool TryGetSlotId(EntityUid holderUid, EntityUid attachableUid, [NotNullWhen(true)] out string? slotId)

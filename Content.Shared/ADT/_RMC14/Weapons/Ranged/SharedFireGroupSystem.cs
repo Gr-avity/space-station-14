@@ -1,14 +1,16 @@
 ﻿using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Timing;
+using Content.Shared.Timing.Components;
+using Content.Shared.Timing.Systems;
 using Content.Shared.Weapons.Ranged.Events;
 using Content.Shared.Weapons.Ranged.Systems;
 
 namespace Content.Shared._RMC14.Weapons.Ranged;
 
-public sealed class SharedFireGroupSystem : EntitySystem
+public sealed partial class SharedFireGroupSystem : EntitySystem
 {
-    [Dependency] private readonly UseDelaySystem _delay = default!;
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
+    [Dependency] private UseDelaySystem _delay = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
 
     public override void Initialize()
     {

@@ -4,7 +4,7 @@ using Content.Shared.Weapons.Ranged.Events;
 
 namespace Content.Shared._RMC14.Attachable.Systems;
 
-public sealed class AttachableSilencerSystem : EntitySystem
+public sealed partial class AttachableSilencerSystem : EntitySystem
 {
     public override void Initialize()
     {

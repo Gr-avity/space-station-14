@@ -5,10 +5,10 @@ using Content.Shared.Popups;
 
 namespace Content.Shared._RMC14.Armor.Magnetic;
 
-public sealed class RMCMagneticSystem : EntitySystem
+public sealed partial class RMCMagneticSystem : EntitySystem
 {
-    [Dependency] private readonly InventorySystem _inventory = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
+    [Dependency] private InventorySystem _inventory = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
 
     public override void Initialize()
     {

@@ -1,13 +1,15 @@
 ﻿using Content.Shared.Timing;
+using Content.Shared.Timing.Components;
+using Content.Shared.Timing.Systems;
 using Content.Shared.Weapons.Ranged.Components;
 using Content.Shared.Weapons.Ranged.Events;
 using Content.Shared.Weapons.Ranged.Systems;
 
 namespace Content.Shared._RMC14.Weapons.Ranged;
 
-public sealed class ShootUseDelaySystem : EntitySystem
+public sealed partial class ShootUseDelaySystem : EntitySystem
 {
-    [Dependency] private readonly UseDelaySystem _useDelay = default!;
+    [Dependency] private UseDelaySystem _useDelay = default!;
 
     private const string shootUseDelayId = "CMShootUseDelay";
 

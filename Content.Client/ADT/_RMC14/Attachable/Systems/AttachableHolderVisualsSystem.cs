@@ -8,17 +8,17 @@ using Robust.Shared.Containers;
 
 namespace Content.Client._RMC14.Attachable.Systems;
 
-public sealed class AttachableHolderVisualsSystem : EntitySystem
+public sealed partial class AttachableHolderVisualsSystem : EntitySystem
 {
-    [Dependency] private readonly AttachableHolderSystem _attachableHolderSystem = default!;
-    
+    [Dependency] private AttachableHolderSystem _attachableHolderSystem = default!;
+
     public override void Initialize()
     {
         base.Initialize();
 
         SubscribeLocalEvent<AttachableHolderVisualsComponent, EntRemovedFromContainerMessage>(OnDetached);
         SubscribeLocalEvent<AttachableHolderVisualsComponent, AttachableHolderAttachablesAlteredEvent>(OnAttachablesAltered);
-        
+
         SubscribeLocalEvent<AttachableVisualsComponent, AppearanceChangeEvent>(OnAttachableAppearanceChange);
     }
 
@@ -72,7 +72,7 @@ public sealed class AttachableHolderVisualsSystem : EntitySystem
 
                 SetAttachableOverlay(holder, attachable, args.SlotId);
                 break;
-            
+
             case AttachableAlteredType.AppearanceChanged:
                 SetAttachableOverlay(holder, attachable, args.SlotId, suffix);
                 break;
@@ -139,7 +139,7 @@ public sealed class AttachableHolderVisualsSystem : EntitySystem
 
         holderSprite.LayerMapSet(slotId, holderSprite.AddLayer(layerData));
     }
-    
+
     private void OnAttachableAppearanceChange(Entity<AttachableVisualsComponent> attachable, ref AppearanceChangeEvent args)
     {
         if (!attachable.Comp.RedrawOnAppearanceChange ||
@@ -148,7 +148,7 @@ public sealed class AttachableHolderVisualsSystem : EntitySystem
         {
             return;
         }
-        
+
         var holderEvent = new AttachableHolderAttachablesAlteredEvent(attachable.Owner, slotId, AttachableAlteredType.AppearanceChanged);
         RaiseLocalEvent(holderUid.Value, ref holderEvent);
     }

@@ -2,4 +2,4 @@
 
 
 [ByRefEvent]
-public record struct GunGetFireRateEvent(float FireRate);
+public partial record struct GunGetFireRateEvent(float FireRate);

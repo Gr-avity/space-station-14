@@ -3,7 +3,7 @@
 namespace Content.Shared._RMC14.Input;
 
 [KeyFunctions]
-public sealed class CMKeyFunctions
+public sealed partial class CMKeyFunctions
 {
     public static readonly BoundKeyFunction RMCActivateAttachableBarrel = "RMCActivateAttachableBarrel";
     public static readonly BoundKeyFunction RMCActivateAttachableRail = "RMCActivateAttachableRail";

@@ -10,9 +10,9 @@ using Robust.Shared.Input.Binding;
 
 namespace Content.Shared._RMC14.Weapons.Ranged;
 
-public sealed class RMCSelectiveFireSystem : EntitySystem
+public sealed partial class RMCSelectiveFireSystem : EntitySystem
 {
-    [Dependency] private readonly SharedGunSystem _gunSystem = default!;
+    [Dependency] private SharedGunSystem _gunSystem = default!;
 
     private const string scatterExamineColour = "yellow";
 
@@ -34,9 +34,10 @@ public sealed class RMCSelectiveFireSystem : EntitySystem
             .Bind(CMKeyFunctions.RMCCycleFireMode,
                 InputCmdHandler.FromDelegate(session =>
                     {
-                        if (session?.AttachedEntity is { } userUid && _gunSystem.TryGetGun(userUid, out var gunUid, out var gunComponent))
+                        if (session?.AttachedEntity is { } userUid &&
+                            _gunSystem.TryGetGun(userUid, out var gun))
                         {
-                            _gunSystem.CycleFire(gunUid, gunComponent, userUid);
+                            _gunSystem.CycleFire(gun.Owner, gun.Comp, userUid);
                         }
                     },
                     handle: false))
@@ -49,12 +50,12 @@ public sealed class RMCSelectiveFireSystem : EntitySystem
 
         if (args.SenderSession.AttachedEntity == null ||
             !TryComp(gunUid, out GunComponent? gunComponent) ||
-            !_gunSystem.TryGetGun(args.SenderSession.AttachedEntity.Value, out _, out var userGun))
+            !_gunSystem.TryGetGun(args.SenderSession.AttachedEntity.Value, out var userGun))
         {
             return;
         }
 
-        if (userGun != gunComponent)
+        if (userGun.Owner != gunUid)
             return;
 
         gunComponent.CurrentAngle = gunComponent.MinAngleModified;
@@ -107,7 +108,7 @@ public sealed class RMCSelectiveFireSystem : EntitySystem
         gunComponent.AngleIncrease = gun.Comp.ScatterIncrease;
         gunComponent.AngleDecay = gun.Comp.ScatterDecay;
 
-        var ev = new GunGetFireRateEvent(gunComponent.SelectedMode == SelectiveFire.Burst ? gun.Comp.BaseFireRate * 2 : gun.Comp.BaseFireRate);
+        var ev = new GunGetFireRateEvent(gunComponent.SelectedMode == SelectiveFire.Burst ? gun.Comp.BaseFireRate * 2 : gun.Comp.BaseFireRate); // TWD: delete gun.Comp.BurstFireRateMultiplier
         RaiseLocalEvent(gun, ref ev);
         gunComponent.FireRate = ev.FireRate;
 
@@ -116,7 +117,16 @@ public sealed class RMCSelectiveFireSystem : EntitySystem
             var mods = gun.Comp.Modifiers[gunComponent.SelectedMode];
             ev = new GunGetFireRateEvent(1f / (1f / gunComponent.FireRate + mods.FireDelay));
             RaiseLocalEvent(gun, ref ev);
-            gunComponent.FireRate = ev.FireRate;
+
+            switch (gunComponent.SelectedMode)
+            {
+                case SelectiveFire.Burst:
+                    gunComponent.BurstFireRate = ev.FireRate;
+                    break;
+                default:
+                    gunComponent.FireRate = ev.FireRate;
+                    break;
+            }
         }
 
         RefreshWieldableFireModeValues(gun);
@@ -228,4 +238,14 @@ public sealed class RMCSelectiveFireSystem : EntitySystem
         Dirty(gun);
     }
 #endregion
+    public void SetModifiers(Entity<RMCSelectiveFireComponent?> ent, Dictionary<SelectiveFire, SelectiveFireModifierSet> dict)
+    {
+        if (ent.Comp == null && !TryComp(ent.Owner, out ent.Comp))
+            return;
+
+        ent.Comp.Modifiers = new Dictionary<SelectiveFire, SelectiveFireModifierSet>(dict);
+        RefreshFireModes(ent, true);
+        Dirty(ent);
+
+    }
 }

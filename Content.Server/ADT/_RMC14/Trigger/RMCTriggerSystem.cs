@@ -1,15 +1,16 @@
-﻿using Content.Server.Explosion.EntitySystems;
-using Content.Shared._RMC14.Weapons.Ranged;
+﻿using Content.Shared._RMC14.Weapons.Ranged;
 using Content.Shared.Throwing;
+using Content.Shared.Trigger.Components;
+using Content.Shared.Trigger.Systems;
 using Content.Shared.Weapons.Ranged.Events;
 using Robust.Shared.Timing;
 
 namespace Content.Server._RMC14.Trigger;
 
-public sealed class RMCTriggerSystem : EntitySystem
+public sealed partial class RMCTriggerSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly TriggerSystem _trigger = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private TriggerSystem _trigger = default!;
 
     public override void Initialize()
     {
@@ -21,7 +22,16 @@ public sealed class RMCTriggerSystem : EntitySystem
     {
         foreach (var projectile in args.FiredProjectiles)
         {
-            _trigger.HandleTimerTrigger(projectile, null, ent.Comp.Delay, ent.Comp.BeepInterval, ent.Comp.InitialBeepDelay, ent.Comp.BeepSound);
+            var timer = EnsureComp<TimerTriggerComponent>(projectile);
+            timer.Delay = TimeSpan.FromSeconds(ent.Comp.Delay);
+            timer.BeepInterval = TimeSpan.FromSeconds(ent.Comp.BeepInterval);
+            timer.InitialBeepDelay = ent.Comp.InitialBeepDelay is { } delay
+                ? TimeSpan.FromSeconds(delay)
+                : null;
+            timer.BeepSound = ent.Comp.BeepSound;
+            Dirty(projectile, timer);
+
+            _trigger.ActivateTimerTrigger((projectile, timer));
         }
     }
 

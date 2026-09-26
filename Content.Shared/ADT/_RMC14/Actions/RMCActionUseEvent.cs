@@ -1,4 +1,4 @@
 ﻿namespace Content.Shared._RMC14.Actions;
 
 [ByRefEvent]
-public readonly record struct RMCActionUseEvent(EntityUid User);
+public readonly partial record struct RMCActionUseEvent(EntityUid User);
