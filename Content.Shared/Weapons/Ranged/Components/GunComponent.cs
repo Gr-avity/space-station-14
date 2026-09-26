@@ -5,11 +5,12 @@ using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
 using Robust.Shared.Map;
 using Robust.Shared.Serialization.TypeSerializers.Implementations.Custom;
+using Content.Shared._RMC14.Weapons.Ranged; // RMC-14
 
 namespace Content.Shared.Weapons.Ranged.Components;
 
 [RegisterComponent, NetworkedComponent, AutoGenerateComponentState(fieldDeltas: true), AutoGenerateComponentPause]
-[Access(typeof(SharedGunSystem))]
+[Access(typeof(SharedGunSystem), typeof(RMCSelectiveFireSystem))] // RMC-14
 public sealed partial class GunComponent : Component
 {
     #region Sound
