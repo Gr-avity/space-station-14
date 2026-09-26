@@ -1,7 +1,7 @@
 namespace Content.Shared._RMC14.Attachable.Events;
 
 [ByRefEvent]
-public readonly record struct AttachableAlteredEvent(
+public readonly partial record struct AttachableAlteredEvent(
     EntityUid Holder,
     AttachableAlteredType Alteration,
     EntityUid? User = null

@@ -4,7 +4,7 @@ using Content.Shared.Interaction.Components;
 
 namespace Content.Shared._RMC14.Attachable.Systems;
 
-public sealed class AttachablePreventDropSystem : EntitySystem
+public sealed partial class AttachablePreventDropSystem : EntitySystem
 {
     public override void Initialize()
     {

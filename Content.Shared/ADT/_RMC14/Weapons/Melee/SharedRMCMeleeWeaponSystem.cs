@@ -1,4 +1,5 @@
 ﻿using Content.Shared.Damage;
+using Content.Shared.Damage.Systems;
 using Content.Shared.Interaction.Events;
 using Content.Shared.Weapons.Melee;
 using Content.Shared.Weapons.Melee.Events;
@@ -6,10 +7,10 @@ using Robust.Shared.Timing;
 
 namespace Content.Shared._RMC14.Weapons.Melee;
 
-public abstract class SharedRMCMeleeWeaponSystem : EntitySystem
+public abstract partial class SharedRMCMeleeWeaponSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly SharedMeleeWeaponSystem _melee = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private SharedMeleeWeaponSystem _melee = default!;
 
     private EntityQuery<MeleeWeaponComponent> _meleeWeaponQuery;
 
@@ -60,9 +61,6 @@ public abstract class SharedRMCMeleeWeaponSystem : EntitySystem
 
     private void OnMeleeReceivedMultiplierDamageModify(Entity<MeleeReceivedMultiplierComponent> ent, ref DamageModifyEvent args)
     {
-        if (!_meleeWeaponQuery.HasComp(args.Tool))
-            return;
-
         args.Damage = args.Damage * ent.Comp.OtherMultiplier;
     }
 

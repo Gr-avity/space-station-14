@@ -4,10 +4,10 @@ using Content.Shared._RMC14.Movement;
 
 namespace Content.Shared._RMC14.Attachable.Systems;
 
-public sealed class AttachableTemporarySpeedModsSystem : EntitySystem
+public sealed partial class AttachableTemporarySpeedModsSystem : EntitySystem
 {
-    [Dependency] private readonly TemporarySpeedModifiersSystem _temporarySpeedModifiersSystem = default!;
-    [Dependency] private readonly AttachableHolderSystem _attachableHolderSystem = default!;
+    [Dependency] private TemporarySpeedModifiersSystem _temporarySpeedModifiersSystem = default!;
+    [Dependency] private AttachableHolderSystem _attachableHolderSystem = default!;
 
     public override void Initialize()
     {

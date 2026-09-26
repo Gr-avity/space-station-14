@@ -17,18 +17,19 @@ using Robust.Shared.Random;
 using Robust.Shared.Timing;
 
 namespace Content.Shared._RMC14.Weapons.Ranged;
-public sealed class CMGunSystem : EntitySystem
+
+public sealed partial class CMGunSystem : EntitySystem
 {
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!;
-    [Dependency] private readonly SharedGunSystem _gun = default!;
-    [Dependency] private readonly ItemSlotsSystem _slots = default!;
-    [Dependency] private readonly SharedHandsSystem _hands = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly SharedPhysicsSystem _physics = default!;
-    [Dependency] private readonly SharedTransformSystem _transform = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
+    [Dependency] private SharedGunSystem _gun = default!;
+    [Dependency] private ItemSlotsSystem _slots = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private SharedPhysicsSystem _physics = default!;
+    [Dependency] private SharedTransformSystem _transform = default!;
+    [Dependency] private IGameTiming _timing = default!;
 
     private EntityQuery<PhysicsComponent> _physicsQuery;
     private EntityQuery<ProjectileComponent> _projectileQuery;
@@ -47,8 +48,8 @@ public sealed class CMGunSystem : EntitySystem
         if (args.Handled ||
             !_container.TryGetContainer(gun.Owner, gun.Comp.ContainerID, out var container) ||
             container.ContainedEntities.Count <= 0 ||
-            !_hands.TryGetActiveHand(args.User, out var hand) ||
-            !hand.IsEmpty ||
+            _hands.GetActiveHand(args.User) is not { } hand ||
+            !_hands.HandIsEmpty(args.User, hand) ||
             !_hands.CanPickupToHand(args.User, container.ContainedEntities[0], hand))
         {
             return;

@@ -10,11 +10,11 @@ using Robust.Shared.Audio.Systems;
 
 namespace Content.Shared._RMC14.Weapons.Ranged.Ammo;
 
-public sealed class GunToggleableAmmoSystem : EntitySystem
+public sealed partial class GunToggleableAmmoSystem : EntitySystem
 {
-    [Dependency] private readonly SharedActionsSystem _actions = default!;
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedPopupSystem _popup = default!;
+    [Dependency] private SharedActionsSystem _actions = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedPopupSystem _popup = default!;
 
     private EntityQuery<ProjectileComponent> _projectileQuery;
 
@@ -82,12 +82,8 @@ public sealed class GunToggleableAmmoSystem : EntitySystem
 
         _audio.PlayPredicted(ent.Comp.ToggleSound, ent, user);
 
-        if (_actions.TryGetActionData(ent.Comp.Action, out var action))
-        {
-            action.Icon = setting.Icon;
-            Dirty(ent.Comp.Action.Value, action);
-            _actions.UpdateAction(ent.Comp.Action, action);
-        }
+        if (ent.Comp.Action is { } action)
+            _actions.SetIcon(action, setting.Icon);
 
         Dirty(ent);
         return true;

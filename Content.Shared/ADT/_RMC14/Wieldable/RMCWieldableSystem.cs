@@ -1,13 +1,13 @@
 using Content.Shared._RMC14.Wieldable.Components;
 using Content.Shared._RMC14.Wieldable.Events;
 using Content.Shared.Hands;
-using Content.Shared.Hands.Components;
+using Content.Shared.Hands.EntitySystems;
 using Content.Shared.Interaction.Events;
-using Content.Shared.Inventory;
-using Content.Shared.Inventory.Events;
 using Content.Shared.Movement.Systems;
 using Content.Shared.Popups;
 using Content.Shared.Timing;
+using Content.Shared.Timing.Components;
+using Content.Shared.Timing.Systems;
 using Content.Shared.Weapons.Ranged.Events;
 using Content.Shared.Wieldable;
 using Content.Shared.Wieldable.Components;
@@ -17,16 +17,16 @@ using Robust.Shared.Timing;
 
 namespace Content.Shared._RMC14.Wieldable;
 
-public sealed class RMCWieldableSystem : EntitySystem
+public sealed partial class RMCWieldableSystem : EntitySystem
 {
-    [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly InventorySystem _inventorySystem = default!;
-    [Dependency] private readonly MovementSpeedModifierSystem _movementSpeedModifierSystem = default!;
-    [Dependency] private readonly SharedPopupSystem _popupSystem = default!;
-    [Dependency] private readonly UseDelaySystem _useDelaySystem = default!;
-    [Dependency] private readonly SharedContainerSystem _container = default!;
+    [Dependency] private SharedHandsSystem _hands = default!;
+    [Dependency] private IGameTiming _timing = default!;
+    [Dependency] private MovementSpeedModifierSystem _movementSpeed = default!;
+    [Dependency] private SharedPopupSystem _popupSystem = default!;
+    [Dependency] private UseDelaySystem _useDelaySystem = default!;
+    [Dependency] private SharedContainerSystem _container = default!;
 
-    private const string WieldUseDelayID = "RMCWieldDelay";
+    private const string WieldUseDelayId = "RMCWieldDelay";
 
     public override void Initialize()
     {
@@ -37,17 +37,11 @@ public sealed class RMCWieldableSystem : EntitySystem
         SubscribeLocalEvent<WieldableSpeedModifiersComponent, ItemWieldedEvent>(OnItemWielded);
         SubscribeLocalEvent<WieldableSpeedModifiersComponent, MapInitEvent>(OnMapInit);
 
-        SubscribeLocalEvent<WieldSlowdownCompensationComponent, GotEquippedEvent>(OnGotEquipped);
-        SubscribeLocalEvent<WieldSlowdownCompensationComponent, GotUnequippedEvent>(OnGotUnequipped);
-
         SubscribeLocalEvent<WieldDelayComponent, GotEquippedHandEvent>(OnGotEquippedHand);
         SubscribeLocalEvent<WieldDelayComponent, MapInitEvent>(OnMapInit);
         SubscribeLocalEvent<WieldDelayComponent, UseInHandEvent>(OnUseInHand);
         SubscribeLocalEvent<WieldDelayComponent, ShotAttemptedEvent>(OnShotAttempt);
         SubscribeLocalEvent<WieldDelayComponent, ItemWieldedEvent>(OnItemWieldedWithDelay);
-
-
-        SubscribeLocalEvent<InventoryComponent, RefreshWieldSlowdownCompensationEvent>(_inventorySystem.RelayEvent);
     }
 
     private void OnMapInit(Entity<WieldableSpeedModifiersComponent> wieldable, ref MapInitEvent args)
@@ -58,31 +52,22 @@ public sealed class RMCWieldableSystem : EntitySystem
     private void OnMapInit(Entity<WieldDelayComponent> wieldable, ref MapInitEvent args)
     {
         wieldable.Comp.ModifiedDelay = wieldable.Comp.BaseDelay;
+        Dirty(wieldable);
     }
 
-    #region Wield speed modifiers
+#region Wield speed modifiers
     private void OnGotEquippedHand(Entity<WieldableSpeedModifiersComponent> wieldable, ref GotEquippedHandEvent args)
     {
-        _movementSpeedModifierSystem.RefreshMovementSpeedModifiers(args.User);
+        _movementSpeed.RefreshMovementSpeedModifiers(args.User);
     }
 
     private void OnGotUnequippedHand(Entity<WieldableSpeedModifiersComponent> wieldable, ref GotUnequippedHandEvent args)
     {
-        _movementSpeedModifierSystem.RefreshMovementSpeedModifiers(args.User);
+        _movementSpeed.RefreshMovementSpeedModifiers(args.User);
     }
 
     private void OnRefreshMovementSpeedModifiers(Entity<WieldableSpeedModifiersComponent> wieldable, ref HeldRelayedEvent<RefreshMovementSpeedModifiersEvent> args)
     {
-        if (TryComp(wieldable.Owner, out TransformComponent? transformComponent) &&
-            transformComponent.ParentUid.Valid &&
-            TryComp(transformComponent.ParentUid, out WieldSlowdownCompensationUserComponent? userComponent))
-        {
-            args.Args.ModifySpeed(
-                Math.Min(wieldable.Comp.ModifiedWalk + userComponent.Walk, 1f),
-                Math.Min(wieldable.Comp.ModifiedSprint + userComponent.Sprint, 1f));
-            return;
-        }
-
         args.Args.ModifySpeed(wieldable.Comp.ModifiedWalk, wieldable.Comp.ModifiedSprint);
     }
 
@@ -104,6 +89,7 @@ public sealed class RMCWieldableSystem : EntitySystem
 
         wieldable.Comp.ModifiedWalk = ev.Walk > 0 ? ev.Walk : 0;
         wieldable.Comp.ModifiedSprint = ev.Sprint > 0 ? ev.Sprint : 0;
+        Dirty(wieldable);
 
         RefreshModifiersOnParent(wieldable.Owner);
     }
@@ -120,68 +106,36 @@ public sealed class RMCWieldableSystem : EntitySystem
 
     private void RefreshModifiersOnParent(EntityUid wieldableUid)
     {
-        if (!TryComp(wieldableUid, out TransformComponent? transformComponent) ||
-            !transformComponent.ParentUid.Valid ||
-            !TryComp(transformComponent.ParentUid, out HandsComponent? handsComponent) ||
-            handsComponent.ActiveHandEntity != wieldableUid)
+        if (!TryComp(wieldableUid, out TransformComponent? xform) ||
+            !xform.ParentUid.Valid ||
+            _hands.GetActiveItem(xform.ParentUid) is not { } active ||
+            active != wieldableUid)
         {
             return;
         }
 
-        _movementSpeedModifierSystem.RefreshMovementSpeedModifiers(transformComponent.ParentUid);
+        _movementSpeed.RefreshMovementSpeedModifiers(xform.ParentUid);
     }
-    #endregion
+#endregion
 
-
-    #region Wield slowdown compensation
-    private void OnGotEquipped(Entity<WieldSlowdownCompensationComponent> armour, ref GotEquippedEvent args)
-    {
-        EnsureComp(args.Equipee, out WieldSlowdownCompensationUserComponent comp);
-
-        RefreshWieldSlowdownCompensation((args.Equipee, comp));
-    }
-
-    private void OnGotUnequipped(Entity<WieldSlowdownCompensationComponent> armour, ref GotUnequippedEvent args)
-    {
-        EnsureComp(args.Equipee, out WieldSlowdownCompensationUserComponent comp);
-
-        RefreshWieldSlowdownCompensation((args.Equipee, comp));
-    }
-
-    private void RefreshWieldSlowdownCompensation(Entity<WieldSlowdownCompensationUserComponent> user)
-    {
-        var ev = new RefreshWieldSlowdownCompensationEvent(~SlotFlags.POCKET);
-        RaiseLocalEvent(user.Owner, ref ev);
-
-        user.Comp.Walk = ev.Walk;
-        user.Comp.Walk = ev.Sprint;
-    }
-
-    private void OnRefreshWieldSlowdownCompensation(Entity<WieldSlowdownCompensationComponent> armour, ref InventoryRelayedEvent<RefreshWieldSlowdownCompensationEvent> args)
-    {
-        args.Args.Walk += armour.Comp.Walk;
-        args.Args.Sprint += armour.Comp.Sprint;
-    }
-    #endregion
-
-    #region Wield delay
+#region Wield delay
     private void OnGotEquippedHand(Entity<WieldDelayComponent> wieldable, ref GotEquippedHandEvent args)
     {
-        _useDelaySystem.SetLength(wieldable.Owner, wieldable.Comp.ModifiedDelay, WieldUseDelayID);
-        _useDelaySystem.TryResetDelay(wieldable.Owner, id: WieldUseDelayID);
+        _useDelaySystem.SetLength(wieldable.Owner, wieldable.Comp.ModifiedDelay, WieldUseDelayId);
+        _useDelaySystem.TryResetDelay(wieldable.Owner, id: WieldUseDelayId);
     }
 
     private void OnUseInHand(Entity<WieldDelayComponent> wieldable, ref UseInHandEvent args)
     {
         if (!TryComp(wieldable.Owner, out UseDelayComponent? useDelayComponent) ||
-            !_useDelaySystem.IsDelayed((wieldable.Owner, useDelayComponent), WieldUseDelayID))
+            !_useDelaySystem.IsDelayed((wieldable.Owner, useDelayComponent), WieldUseDelayId))
         {
             return;
         }
 
         args.Handled = true;
 
-        if (!_useDelaySystem.TryGetDelayInfo((wieldable.Owner, useDelayComponent), out var info, WieldUseDelayID))
+        if (!_useDelaySystem.TryGetDelayInfo((wieldable.Owner, useDelayComponent), out var info, WieldUseDelayId))
         {
             return;
         }
@@ -199,6 +153,7 @@ public sealed class RMCWieldableSystem : EntitySystem
         RaiseLocalEvent(wieldable, ref ev);
 
         wieldable.Comp.ModifiedDelay = ev.Delay >= TimeSpan.Zero ? ev.Delay : TimeSpan.Zero;
+        Dirty(wieldable);
     }
 
     private void OnItemWieldedWithDelay(Entity<WieldDelayComponent> wieldable, ref ItemWieldedEvent args)
@@ -207,17 +162,17 @@ public sealed class RMCWieldableSystem : EntitySystem
         var skillModifiedDelay = wieldable.Comp.ModifiedDelay;
 
         if (_container.TryGetContainingContainer((wieldable, null), out var container))
-            skillModifiedDelay -= TimeSpan.FromSeconds(0.2) * 1; // ADT ЗАТЫЧКА
+            skillModifiedDelay -= TimeSpan.FromSeconds(0.2) * 1; // TWD
 
-        _useDelaySystem.SetLength(wieldable.Owner, skillModifiedDelay, WieldUseDelayID);
-        _useDelaySystem.TryResetDelay(wieldable.Owner, id: WieldUseDelayID);
+        _useDelaySystem.SetLength(wieldable.Owner, skillModifiedDelay, WieldUseDelayId);
+        _useDelaySystem.TryResetDelay(wieldable.Owner, id: WieldUseDelayId);
     }
 
     public void OnShotAttempt(Entity<WieldDelayComponent> wieldable, ref ShotAttemptedEvent args)
     {
         if (!TryComp(wieldable.Owner, out UseDelayComponent? useDelayComponent) ||
-            !_useDelaySystem.IsDelayed((wieldable.Owner, useDelayComponent), WieldUseDelayID) ||
-            !_useDelaySystem.TryGetDelayInfo((wieldable.Owner, useDelayComponent), out var info, WieldUseDelayID))
+            !_useDelaySystem.IsDelayed((wieldable.Owner, useDelayComponent), WieldUseDelayId) ||
+            !_useDelaySystem.TryGetDelayInfo((wieldable.Owner, useDelayComponent), out var info, WieldUseDelayId))
         {
             return;
         }
@@ -230,5 +185,5 @@ public sealed class RMCWieldableSystem : EntitySystem
         // Uncomment when there's a cooldown on popups from a source.
     }
 
-    #endregion
+#endregion
 }

@@ -8,17 +8,18 @@ using Robust.Shared.Timing;
 
 namespace Content.Shared._RMC14.Sound;
 
-public sealed class CMSoundSystem : EntitySystem
+public sealed partial class CMSoundSystem : SharedEmitSoundSystem
 {
-    [Dependency] private readonly SharedAudioSystem _audio = default!;
-    [Dependency] private readonly SharedEmitSoundSystem _emitSound = default!;
-    [Dependency] private readonly MobStateSystem _mobState = default!;
-    [Dependency] private readonly INetManager _net = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly IGameTiming _timing = default!;
+    [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private MobStateSystem _mobState = default!;
+    [Dependency] private INetManager _net = default!;
+    [Dependency] private IRobustRandom _random = default!;
+    [Dependency] private IGameTiming _timing = default!;
 
     public override void Initialize()
     {
+        base.Initialize();
+
         SubscribeLocalEvent<RandomSoundComponent, MapInitEvent>(OnRandomMapInit);
 
         SubscribeLocalEvent<SoundOnDeathComponent, MobStateChangedEvent>(OnDeathMobStateChanged);
@@ -48,7 +49,7 @@ public sealed class CMSoundSystem : EntitySystem
 
     private void OnEmitSoundOnAction(Entity<EmitSoundOnActionComponent> ent, ref SoundActionEvent args)
     {
-        _emitSound.EmitSound(ent, ent, args.Performer);
+        TryEmitSound(ent, ent.Comp, args.Performer);
 
         if (ent.Comp.Handle)
             args.Handled = true;
