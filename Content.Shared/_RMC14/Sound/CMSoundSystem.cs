@@ -8,9 +8,10 @@ using Robust.Shared.Timing;
 
 namespace Content.Shared._RMC14.Sound;
 
-public sealed partial class CMSoundSystem : SharedEmitSoundSystem
+public sealed partial class CMSoundSystem : EntitySystem
 {
     [Dependency] private SharedAudioSystem _audio = default!;
+    [Dependency] private SharedEmitSoundSystem _emitSound = default!;
     [Dependency] private MobStateSystem _mobState = default!;
     [Dependency] private INetManager _net = default!;
     [Dependency] private IRobustRandom _random = default!;
@@ -49,7 +50,7 @@ public sealed partial class CMSoundSystem : SharedEmitSoundSystem
 
     private void OnEmitSoundOnAction(Entity<EmitSoundOnActionComponent> ent, ref SoundActionEvent args)
     {
-        TryEmitSound(ent, ent.Comp, args.Performer);
+        _emitSound.TryEmitSound(ent, ent, args.Performer);
 
         if (ent.Comp.Handle)
             args.Handled = true;
