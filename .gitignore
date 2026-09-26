@@ -319,6 +319,3 @@ error.glsl
 
 # C# Dev Kit cache file
 *.lscache
-
-# TWD
-/Scripts/
