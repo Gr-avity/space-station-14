@@ -1,0 +1,38 @@
+## BASE
+- type: entity
+  abstract: true
+  parent: RMCAttachableBase
+  id: RMCBarrelAttachmentBase
+  components:
+  - type: Sprite
+    sprite: _RMC14/Objects/Weapons/Guns/Attachments/barrel.rsi
+  - type: Tag
+    tags:
+    - RMCAttachmentBarrel
+##
+
+- type: entity
+  parent: RMCBarrelAttachmentBase
+  id: RMCAttachmentSuppressor
+  name: suppressor
+  description: "A small tube with exhaust ports to expel noise and gas.
+    Does not completely silence a weapon, but does make it much quieter at the cost of slightly reduced damage."
+  # categories:
+  # - HideSpawnMenu
+  components:
+  - type: Sprite
+    state: suppressor
+  - type: Tag
+    tags:
+    - RMCAttachmentBarrel
+    - RMCAttachmentSuppressor
+  - type: AttachableVisuals
+    prefix: suppressor
+  - type: AttachableSilencer
+    sound:
+      collection: RMCSilencedShoot
+      params:
+        maxDistance: 6
+  # - type: AttachableWeaponRangedMods Пока не работает
+  #   modifiers:
+  #   - damageFalloffAddMult: 0.1

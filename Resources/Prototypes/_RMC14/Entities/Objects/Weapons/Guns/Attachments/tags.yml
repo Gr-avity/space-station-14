@@ -1,0 +1,41 @@
+- type: Tag
+  id: RMCAttachmentUnderbarrel
+
+- type: Tag
+  id: RMCAttachmentM90GrenadeLauncher
+
+- type: Tag
+  id: RMCAttachmentM90UnderbarrelShotgun
+
+- type: Tag
+  id: RMCAttachmentBarrel
+
+- type: Tag
+  id: SurvivalKnifeAttachment
+
+- type: Tag
+  id: RMCAttachmentRail
+
+- type: Tag
+  id: RMCAttachmentMagneticHarness
+
+- type: Tag
+  id: RMCAttachmentHristovScope
+
+- type: Tag
+  id: RMCMosinBayonetAttachment
+
+- type: Tag
+  id: RMCAttachmentT2Miniscope
+
+- type: Tag
+  id: RMCAttachmentVerticalGrip
+
+- type: Tag
+  id: RMCAttachmentReflexSight
+
+- type: Tag
+  id: RMCAttachmentLaserSight
+
+- type: Tag
+  id: RMCAttachmentSuppressor

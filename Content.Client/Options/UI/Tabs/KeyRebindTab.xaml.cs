@@ -13,6 +13,7 @@ using Robust.Shared.Input;
 using Robust.Shared.Timing;
 using Robust.Shared.Utility;
 using static Robust.Client.UserInterface.Controls.BoxContainer;
+using Content.Shared._RMC14.Input; // RMC-14
 
 namespace Content.Client.Options.UI.Tabs
 {
@@ -143,6 +144,15 @@ namespace Content.Client.Options.UI.Tabs
 
                 KeybindsContainer.AddChild(newCheckBox);
             }
+            // RMC-14 start
+            AddHeader("ui-options-header-rmc");
+            AddButton(CMKeyFunctions.RMCActivateAttachableBarrel);
+            AddButton(CMKeyFunctions.RMCActivateAttachableRail);
+            AddButton(CMKeyFunctions.RMCActivateAttachableStock);
+            AddButton(CMKeyFunctions.RMCActivateAttachableUnderbarrel);
+            AddButton(CMKeyFunctions.RMCFieldStripHeldItem);
+            AddButton(CMKeyFunctions.CMUniqueAction);
+            // RMC-14 end
 
             void AddToggleCvarCheckBox(string checkBoxName, CVarDef<bool> cvar)
             {
