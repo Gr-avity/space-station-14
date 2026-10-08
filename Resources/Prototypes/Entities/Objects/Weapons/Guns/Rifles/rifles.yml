@@ -107,7 +107,7 @@
 
 - type: entity
   name: Lecter
-  parent: [BaseWeaponRifle, BaseSecurityContraband]
+  parent: [BaseWeaponRifle, BaseSecurityContraband, RMCBaseAttachableHolder]
   id: WeaponRifleLecter
   description: "Popular gas-operated combat rifle used heavily by Nanotrasen and SolGov. Operating in semi or fully automatic, its accuracy, stopping power, and reliability make it excel in all manner of environments.\nFeeds from .20 rifle magazines."
   components:
@@ -155,6 +155,33 @@
     steps: 5
     zeroVisible: true
   - type: Appearance
+  # ADT TWEAK START
+  - type: AttachableHolder
+    slots:
+      rmc-aslot-underbarrel:
+        whitelist:
+          tags:
+          - RMCAttachmentM90GrenadeLauncher
+          - RMCAttachmentM90UnderbarrelShotgun
+          - RMCAttachmentVerticalGrip
+          - RMCAttachmentLaserSight
+          - SurvivalKnifeAttachment
+      rmc-aslot-rail:
+        whitelist:
+            tags:
+            - RMCAttachmentMagneticHarness
+            - RMCAttachmentReflexSight
+            - RMCAttachmentT2Miniscope
+      rmc-aslot-barrel:
+        whitelist:
+            tags:
+            - RMCAttachmentSuppressor
+  - type: AttachableHolderVisuals
+    offsets:
+      rmc-aslot-underbarrel: 0.3125, -0.0625
+      rmc-aslot-rail: 0, 0
+      rmc-aslot-barrel: 0.96875, 0
+# ADT TWEAK END
 
 - type: entity
   parent: WeaponRifleLecter
@@ -203,7 +230,7 @@
     sprite: Objects/Weapons/Guns/Rifles/estoc.rsi
   - type: Gun
     minAngle: 21
-    maxAngle: 32 
+    maxAngle: 32
     soundGunshot:
       path: /Audio/Weapons/Guns/Gunshots/estocshot.ogg
     shotsPerBurst: 3

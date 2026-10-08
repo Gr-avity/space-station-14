@@ -1,0 +1,50 @@
+- type: entity
+  id: RMCActionBase
+  categories:
+  - HideSpawnMenu
+  components:
+  - type: Action
+
+- type: entity
+  parent: RMCActionBase
+  id: RMCActionToggleScope
+  name: Toggle Optics
+  description: Scope
+  components:
+  - type: InstantAction
+    icon:
+      sprite: _RMC14/Objects/Weapons/Guns/Attachments/scope_actions.rsi
+      state: sniperscope
+    event: !type:ToggleActionEvent
+    useDelay: 0.25
+
+- type: entity
+  parent: RMCActionBase
+  id: RMCActionCycleZoomLevel
+  name: Cycle Zoom Level
+  description: Scope
+  components:
+  - type: InstantAction
+    icon:
+      sprite: _RMC14/Objects/Weapons/Guns/Attachments/scope_actions.rsi
+      state: sniperscope
+    event: !type:ScopeCycleZoomLevelEvent
+    useDelay: 0.25
+  - type: Tag
+    tags:
+    - RMCActionCycleZoomLevel
+
+- type: entity
+  parent: RMCActionBase
+  id: CMActionToggleAttachable
+  name: Toggle Attachable
+  description: Toggle an attachable.
+  components:
+  - type: InstantAction
+    icon:
+      sprite: _RMC14/Objects/Weapons/Guns/Attachments/scope_actions.rsi
+      state: sniperscope
+    event: !type:AttachableToggleActionEvent
+
+- type: Tag
+  id: RMCActionCycleZoomLevel
